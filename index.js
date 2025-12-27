@@ -16,11 +16,11 @@ startJobCleanupService();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.get('/', (req, res) => {
+app.get('/status', (req, res) => {
   res.json({ message: 'Express server is running' });
 });
 
-app.use('/api/content', contentRoutes);
+app.use('/', contentRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
