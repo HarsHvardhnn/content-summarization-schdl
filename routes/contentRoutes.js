@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { createSummary } = require('../controllers/contentController');
+const { createSummary, getJobStatus } = require('../controllers/contentController');
 
-router.post('/summary', createSummary);
+router.post('/submit', createSummary);
+router.get('/status/:jobId', getJobStatus);
 
 module.exports = router;
 
