@@ -15,8 +15,14 @@ const contentSchema = new mongoose.Schema({
     type: String
   },
   summary: {
+    type: String
+  },
+  status: {
     type: String,
-    required: true
+    enum: ['pending', 'failed', 'completed'],
+    default: 'pending',
+    required: true,
+    index: true
   },
   deletedAt: {
     type: Date,
@@ -31,6 +37,7 @@ const contentSchema = new mongoose.Schema({
 contentSchema.index({ createdAt: -1 });
 contentSchema.index({ updatedAt: -1 });
 contentSchema.index({ type: 1, createdAt: -1 });
+contentSchema.index({ status: 1, createdAt: -1 });
 
 const Content = mongoose.model('Content', contentSchema);
 
