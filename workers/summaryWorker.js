@@ -11,12 +11,15 @@ const startSummaryWorker = () => {
     async (job) => {
       const { jobId, type, input } = job.data;
       const attemptNumber = job.attemptsMade + 1;
+      const jobStartTime = Date.now();
+      const queueWaitTime = jobStartTime - job.timestamp;
 
       logger.info(`Processing job ${jobId}`, {
         jobId,
         type,
         attemptNumber,
-        totalAttempts: job.opts.attempts
+        totalAttempts: job.opts.attempts,
+        queueWaitTimeMs: queueWaitTime
       });
 
       try {
@@ -28,8 +31,8 @@ const startSummaryWorker = () => {
           throw error;
         }
 
-        if (content.status !== 'pending') {
-          logger.warn(`Job status is not pending`, {
+        if (content.status === 'completed') {
+          logger.warn(`Job already completed`, {
             jobId,
             currentStatus: content.status,
             attemptNumber
@@ -37,28 +40,47 @@ const startSummaryWorker = () => {
           return { jobId, status: content.status, skipped: true };
         }
 
+        if (content.status === 'processing' && attemptNumber === 1) {
+          logger.warn(`Job already being processed, will retry due to stall`, {
+            jobId,
+            attemptNumber
+          });
+        }
+
+        content.status = 'processing';
+        await content.save();
+
         logger.debug(`Starting content processing`, { jobId, type });
 
-        const startTime = Date.now();
+        const processingStartTime = Date.now();
         const { extractedContent, summary } = await processContent(type, input);
-        const processingTimeMs = Date.now() - startTime;
+        const contentProcessingTime = Date.now() - processingStartTime;
+        const totalProcessingTimeMs = Date.now() - jobStartTime;
 
         content.summary = summary;
         content.extractedContent = extractedContent || null;
         content.status = 'completed';
-        content.processingTimeMs = processingTimeMs;
+        content.processingTimeMs = totalProcessingTimeMs;
         content.errorMessage = null;
         content.errorStack = null;
         await content.save();
 
-        await setCachedSummary(input, jobId, summary, processingTimeMs);
+        await setCachedSummary(input, jobId, summary, totalProcessingTimeMs);
 
         logger.info(`Job completed successfully`, { 
           jobId, 
-          processingTimeMs 
+          queueWaitTimeMs: queueWaitTime,
+          contentProcessingTimeMs: contentProcessingTime,
+          totalProcessingTimeMs
         });
         
-        return { jobId, status: 'completed', processingTimeMs };
+        return { 
+          jobId, 
+          status: 'completed', 
+          processingTimeMs: totalProcessingTimeMs,
+          queueWaitTimeMs: queueWaitTime,
+          contentProcessingTimeMs: contentProcessingTime
+        };
       } catch (error) {
         logger.error(`Error processing job`, {
           jobId,
@@ -72,6 +94,7 @@ const startSummaryWorker = () => {
         try {
           const content = await Content.findById(jobId);
           if (content) {
+            const failedProcessingTimeMs = Date.now() - jobStartTime;
             content.failureCount = (content.failureCount || 0) + 1;
             content.lastFailureAt = new Date();
             content.errorMessage = error.message;
@@ -79,10 +102,12 @@ const startSummaryWorker = () => {
 
             if (attemptNumber >= job.opts.attempts) {
               content.status = 'failed';
+              content.processingTimeMs = failedProcessingTimeMs;
               logger.error(`Job failed after all retries`, {
                 jobId,
                 totalAttempts: attemptNumber,
-                finalError: error.message
+                finalError: error.message,
+                processingTimeMs: failedProcessingTimeMs
               });
             }
             
@@ -105,7 +130,10 @@ const startSummaryWorker = () => {
       limiter: {
         max: 10,
         duration: 1000
-      }
+      },
+      lockDuration: 60000,
+      maxStalledCount: 3,
+      stalledInterval: 30000
     }
   );
 
@@ -155,8 +183,30 @@ const startSummaryWorker = () => {
     });
   });
 
-  worker.on('stalled', (jobId) => {
-    logger.warn(`Job stalled`, { jobId });
+  worker.on('stalled', async (jobId) => {
+    logger.warn(`Job stalled - worker may have crashed`, { 
+      jobId,
+      message: 'Job will be retried automatically'
+    });
+
+    try {
+      const job = await worker.getJob(jobId);
+      if (job && job.data?.jobId) {
+        const content = await Content.findById(job.data.jobId);
+        if (content && content.status === 'processing') {
+          content.status = 'pending';
+          content.failureCount = (content.failureCount || 0) + 1;
+          content.errorMessage = 'Job stalled - worker may have crashed, retrying...';
+          await content.save();
+          logger.info(`Reset job status to pending for retry`, { jobId: job.data.jobId });
+        }
+      }
+    } catch (error) {
+      logger.error(`Error handling stalled job`, {
+        jobId,
+        error: error.message
+      });
+    }
   });
 
   logger.info('Summary worker started and listening for jobs');

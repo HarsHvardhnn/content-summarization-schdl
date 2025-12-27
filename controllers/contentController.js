@@ -124,13 +124,24 @@ const getJobStatus = async (req, res) => {
         failure_count: content.failureCount || 0,
         last_failure_at: content.lastFailureAt
       };
+      if (content.processingTimeMs) {
+        responseData.processing_time_ms = content.processingTimeMs;
+      }
     }
 
     if (content.status === 'completed') {
       responseData.summary = content.summary;
       responseData.cached = false;
-      if (content.processingTimeMs) {
-        responseData.processing_time_ms = content.processingTimeMs;
+      responseData.processing_time_ms = content.processingTimeMs || 0;
+    }
+
+    if (content.status === 'pending' || content.status === 'processing') {
+      const timeSinceCreation = Date.now() - new Date(content.createdAt).getTime();
+      responseData.queue_wait_time_ms = timeSinceCreation;
+      
+      if (content.status === 'processing') {
+        const processingTime = Date.now() - new Date(content.updatedAt).getTime();
+        responseData.processing_duration_ms = processingTime;
       }
     }
 

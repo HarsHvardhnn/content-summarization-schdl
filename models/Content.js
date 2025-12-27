@@ -22,7 +22,7 @@ const contentSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'failed', 'completed'],
+    enum: ['pending', 'processing', 'failed', 'completed'],
     default: 'pending',
     required: true,
     index: true

@@ -3,6 +3,7 @@ const express = require('express');
 const connectDB = require('./config/database');
 const contentRoutes = require('./routes/contentRoutes');
 const { startSummaryWorker } = require('./workers/summaryWorker');
+const { startJobCleanupService } = require('./services/jobCleanupService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,6 +11,7 @@ const PORT = process.env.PORT || 3000;
 connectDB();
 
 startSummaryWorker();
+startJobCleanupService();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
