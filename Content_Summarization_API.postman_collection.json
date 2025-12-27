@@ -1,0 +1,160 @@
+{
+	"info": {
+		"name": "Content Summarization API",
+		"description": "API collection for testing content summarization endpoints",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Submit - URL",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"url\": \"https://en.wikipedia.org/wiki/Artificial_intelligence\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:3000/submit",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"submit"
+					]
+				},
+				"description": "Submit a URL for summarization"
+			},
+			"response": []
+		},
+		{
+			"name": "Submit - Text",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"text\": \"Artificial intelligence (AI) is intelligence demonstrated by machines, in contrast to the natural intelligence displayed by humans and animals. Leading AI textbooks define the field as the study of intelligent agents: any device that perceives its environment and takes actions that maximize its chance of achieving its goals. Some popular accounts use the term artificial intelligence to describe machines that mimic cognitive functions that humans associate with the human mind, such as learning and problem solving.\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:3000/submit",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"submit"
+					]
+				},
+				"description": "Submit text content for summarization"
+			},
+			"response": []
+		},
+		{
+			"name": "Submit - Input Field",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"input\": \"https://example.com/article\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:3000/submit",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"submit"
+					]
+				},
+				"description": "Submit using input field (auto-detects URL or text)"
+			},
+			"response": []
+		},
+		{
+			"name": "Check Status",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/status/:jobId",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"status",
+						":jobId"
+					],
+					"variable": [
+						{
+							"key": "jobId",
+							"value": "YOUR_JOB_ID_HERE",
+							"description": "Job ID returned from submit endpoint"
+						}
+					]
+				},
+				"description": "Check the status of a job. Replace :jobId with actual job ID from submit response"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Result",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/result/:jobId",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"result",
+						":jobId"
+					],
+					"variable": [
+						{
+							"key": "jobId",
+							"value": "YOUR_JOB_ID_HERE",
+							"description": "Job ID from completed job"
+						}
+					]
+				},
+				"description": "Get the summary result for a completed job"
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		}
+	]
+}
+

@@ -58,7 +58,7 @@ You should see messages like MongoDB connected successfully and Summary worker s
 
 ## API Endpoints
 
-POST /api/content/submit
+POST /submit
 Submit a URL or text for summarization
 Body can be:
 ```json
@@ -74,33 +74,38 @@ or
 ```
 Returns a job_id immediately
 
-GET /api/content/status/:jobId
+GET /status/:jobId
 Check the status of a job
 Status can be pending, processing, completed, or failed
 
-GET /api/content/result/:jobId
+GET /result/:jobId
 Get the summary result for a completed job
 Only works for completed jobs
 
 ## Testing the API
 
-You can use Postman or curl to test
+Postman Collection
+Import the Content_Summarization_API.postman_collection.json file into Postman
+This includes all three endpoints with example requests
+Just replace the jobId variable with actual job ID when checking status or getting results
 
-Example curl command to submit a job
+Or use curl commands
+
+Example curl to submit a job
 ```
-curl -X POST http://localhost:3000/api/content/submit \
+curl -X POST http://localhost:3000/submit \
   -H "Content-Type: application/json" \
   -d "{\"url\": \"https://example.com/article\"}"
 ```
 
 Check status
 ```
-curl http://localhost:3000/api/content/status/YOUR_JOB_ID
+curl http://localhost:3000/status/YOUR_JOB_ID
 ```
 
 Get result
 ```
-curl http://localhost:3000/api/content/result/YOUR_JOB_ID
+curl http://localhost:3000/result/YOUR_JOB_ID
 ```
 
 ## How It Works
