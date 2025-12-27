@@ -28,3 +28,4 @@ const summaryQueue = new Queue('summary-queue', {
 
 module.exports = { summaryQueue, connection };
 
+
