@@ -1,6 +1,6 @@
 const Content = require('../models/Content');
 const { detectInputType } = require('../utils/typeDetector');
-const { processJob } = require('../services/workerService');
+const { summaryQueue } = require('../config/queue');
 
 const createSummary = async (req, res) => {
   let savedContent = null;
@@ -25,8 +25,12 @@ const createSummary = async (req, res) => {
 
     savedContent = await Content.create(contentData);
 
-    processJob(savedContent._id.toString(), type, input).catch(error => {
-      console.error(`Worker error for job ${savedContent._id}:`, error);
+    await summaryQueue.add('process-summary', {
+      jobId: savedContent._id.toString(),
+      type,
+      input
+    }, {
+      jobId: savedContent._id.toString()
     });
 
     res.status(201).json({
@@ -63,15 +67,30 @@ const getJobStatus = async (req, res) => {
       });
     }
 
+    const responseData = {
+      job_id: content._id,
+      input_content_type: content.type,
+      status: content.status,
+      created_at: content.createdAt,
+      updated_at: content.updatedAt
+    };
+
+    if (content.status === 'failed') {
+      responseData.error = {
+        message: content.errorMessage,
+        stack: content.errorStack,
+        failure_count: content.failureCount || 0,
+        last_failure_at: content.lastFailureAt
+      };
+    }
+
+    if (content.status === 'completed') {
+      responseData.summary = content.summary;
+    }
+
     res.status(200).json({
       success: true,
-      data: {
-        job_id: content._id,
-        input_content_type: content.type,
-        status: content.status,
-        created_at: content.createdAt,
-        updated_at: content.updatedAt
-      }
+      data: responseData
     });
   } catch (error) {
     console.error('Error fetching job status:', error);

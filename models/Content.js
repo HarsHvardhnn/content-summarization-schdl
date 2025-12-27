@@ -24,6 +24,19 @@ const contentSchema = new mongoose.Schema({
     required: true,
     index: true
   },
+  errorMessage: {
+    type: String
+  },
+  errorStack: {
+    type: String
+  },
+  failureCount: {
+    type: Number,
+    default: 0
+  },
+  lastFailureAt: {
+    type: Date
+  },
   deletedAt: {
     type: Date,
     default: null,
