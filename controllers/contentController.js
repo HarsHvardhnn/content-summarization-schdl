@@ -1,7 +1,7 @@
 const Content = require('../models/Content');
 const { detectInputType } = require('../utils/typeDetector');
 const { summaryQueue } = require('../config/queue');
-const { getCachedSummary, findExistingJobByInput, setCachedSummary } = require('../services/cacheService');
+const { getCachedSummary, findExistingJobByInput, findPendingOrProcessingJobByInput, setCachedSummary } = require('../services/cacheService');
 
 const createSummary = async (req, res) => {
   let savedContent = null;
@@ -52,6 +52,22 @@ const createSummary = async (req, res) => {
       return res.status(200).json({
         success: true,
         data: responseData
+      });
+    }
+
+    const existingPendingJob = await findPendingOrProcessingJobByInput(input);
+    
+    if (existingPendingJob) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          id: existingPendingJob._id,
+          type: existingPendingJob.type,
+          status: existingPendingJob.status,
+          cached: false,
+          message: 'Job already exists with same content. Use this job ID to check status.',
+          createdAt: existingPendingJob.createdAt
+        }
       });
     }
 

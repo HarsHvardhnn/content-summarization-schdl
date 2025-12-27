@@ -70,10 +70,27 @@ const findExistingJobByInput = async (input) => {
   }
 };
 
+const findPendingOrProcessingJobByInput = async (input) => {
+  try {
+    const trimmedInput = input.trim();
+    
+    const existingJob = await Content.findOne({
+      input: { $regex: new RegExp(`^${trimmedInput.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+      status: { $in: ['pending', 'processing'] }
+    }).sort({ createdAt: -1 });
+
+    return existingJob;
+  } catch (error) {
+    console.error('Error finding pending/processing job:', error);
+    return null;
+  }
+};
+
 module.exports = {
   getCachedSummary,
   setCachedSummary,
   findExistingJobByInput,
+  findPendingOrProcessingJobByInput,
   generateCacheKey
 };
 
