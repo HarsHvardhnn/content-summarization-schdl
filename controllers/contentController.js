@@ -1,6 +1,7 @@
 const Content = require('../models/Content');
 const { detectInputType } = require('../utils/typeDetector');
 const { summaryQueue } = require('../config/queue');
+const { getCachedSummary, findExistingJobByInput, setCachedSummary } = require('../services/cacheService');
 
 const createSummary = async (req, res) => {
   let savedContent = null;
@@ -16,6 +17,46 @@ const createSummary = async (req, res) => {
     }
 
     const type = detectInputType(input);
+
+    const cachedResult = await getCachedSummary(input);
+    
+    if (cachedResult) {
+      const existingContent = await Content.findById(cachedResult.jobId);
+      
+      return res.status(200).json({
+        success: true,
+        data: {
+          id: cachedResult.jobId,
+          type: existingContent?.type || type,
+          status: 'completed',
+          summary: cachedResult.summary,
+          cached: true,
+          processing_time_ms: cachedResult.processingTime || existingContent?.processingTimeMs,
+          createdAt: existingContent?.createdAt || cachedResult.createdAt,
+          message: 'Result retrieved from cache'
+        }
+      });
+    }
+
+    const existingJob = await findExistingJobByInput(input);
+    
+    if (existingJob) {
+      await setCachedSummary(input, existingJob._id.toString(), existingJob.summary, existingJob.processingTimeMs || 0);
+      
+      return res.status(200).json({
+        success: true,
+        data: {
+          id: existingJob._id,
+          type: existingJob.type,
+          status: 'completed',
+          summary: existingJob.summary,
+          cached: true,
+          processing_time_ms: existingJob.processingTimeMs,
+          createdAt: existingJob.createdAt,
+          message: 'Result found from previous job'
+        }
+      });
+    }
 
     const contentData = {
       type,
@@ -39,6 +80,7 @@ const createSummary = async (req, res) => {
         id: savedContent._id,
         type: savedContent.type,
         status: savedContent.status,
+        cached: false,
         message: 'Job created successfully. Use job ID to check status.',
         createdAt: savedContent.createdAt
       }
@@ -86,6 +128,10 @@ const getJobStatus = async (req, res) => {
 
     if (content.status === 'completed') {
       responseData.summary = content.summary;
+      responseData.cached = false;
+      if (content.processingTimeMs) {
+        responseData.processing_time_ms = content.processingTimeMs;
+      }
     }
 
     res.status(200).json({

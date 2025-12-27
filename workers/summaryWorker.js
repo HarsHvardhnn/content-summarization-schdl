@@ -3,6 +3,7 @@ const Content = require('../models/Content');
 const { processContent } = require('../services/contentService');
 const { connection } = require('../config/queue');
 const logger = require('../utils/logger');
+const { setCachedSummary } = require('../services/cacheService');
 
 const startSummaryWorker = () => {
   const worker = new Worker(
@@ -38,18 +39,26 @@ const startSummaryWorker = () => {
 
         logger.debug(`Starting content processing`, { jobId, type });
 
+        const startTime = Date.now();
         const { extractedContent, summary } = await processContent(type, input);
+        const processingTimeMs = Date.now() - startTime;
 
         content.summary = summary;
         content.extractedContent = extractedContent || null;
         content.status = 'completed';
+        content.processingTimeMs = processingTimeMs;
         content.errorMessage = null;
         content.errorStack = null;
         await content.save();
 
-        logger.info(`Job completed successfully`, { jobId });
+        await setCachedSummary(input, jobId, summary, processingTimeMs);
+
+        logger.info(`Job completed successfully`, { 
+          jobId, 
+          processingTimeMs 
+        });
         
-        return { jobId, status: 'completed' };
+        return { jobId, status: 'completed', processingTimeMs };
       } catch (error) {
         logger.error(`Error processing job`, {
           jobId,

@@ -17,6 +17,9 @@ const contentSchema = new mongoose.Schema({
   summary: {
     type: String
   },
+  processingTimeMs: {
+    type: Number
+  },
   status: {
     type: String,
     enum: ['pending', 'failed', 'completed'],
