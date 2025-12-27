@@ -7,12 +7,14 @@ const createSummary = async (req, res) => {
   let savedContent = null;
   
   try {
-    const { input } = req.body;
+    const { url, text, input: inputField } = req.body;
+
+    const input = url || text || inputField;
 
     if (!input) {
       return res.status(400).json({
         success: false,
-        message: 'Input is required'
+        message: 'Either url, text, or input field is required'
       });
     }
 
